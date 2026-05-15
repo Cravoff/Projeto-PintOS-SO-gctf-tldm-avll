@@ -28,10 +28,10 @@ typedef int tid_t;
 #define F (1 <<14 )
 
 //converts int n to float 
-#define F_to_INT(n) ((n) * F)
+#define INIT_TO_FP(n) ((n) * F)
 
 //converts float x to int rounds to 0. Warning(n = int, x = float)
-#define INIT_to_F(x) ((x)/F)
+#define FP_TO_INIT(x) ((x)/F)
 
 //converts float x to int rounds to the nearest.
 #define INIT_to_F_ROUND(x) (x>=0 ? ((x + F/2)/F) :  ((x - F/2)/F))
@@ -114,6 +114,8 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
+    int nice;                           //nicenes of cpu (-20 to 20)
+    int recent_cpu;                     //time recent cpu (point fixed)
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
