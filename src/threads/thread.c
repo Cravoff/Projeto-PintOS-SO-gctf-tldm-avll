@@ -21,6 +21,8 @@
 #define THREAD_MAGIC 0xcd6abf4b
 #define A 55
 
+static int load_avg;
+
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
 static struct list ready_list;
@@ -32,7 +34,7 @@ static struct list all_list;
 /* Idle thread. */
 static struct thread *idle_thread;
 
-/* Initial thread, the thread running init.c:main(). */
+/* Initial thread, the thread running init_thread.c:main(). */
 static struct thread *initial_thread;
 
 /* Lock used by allocate_tid(). */
@@ -99,6 +101,7 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+  load_avg = 0;
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -350,31 +353,45 @@ thread_get_priority (void)
 void
 thread_set_nice (int nice UNUSED) 
 {
-  /* Not yet implemented. */
+  struct thread *cur = thread_current();
+
+  //update the value nice
+  if (nice>20) nice = 20;
+  else if (nice<-20) nice = -20;
+
+  cur->nice = nice;
+  
+  //Recaculate the priority immediately with the formula of mlfqs 
+  cur->priority = PRI_MAX - FP_TO_INIT(DIV_FP_INT(cur->recent_cpu, 4)) - (nice*2);
+
+  //Ensures that priority does not exceed normal limits
+  if(cur->priority > PRI_MAX) cur->priority = PRI_MAX;
+  else if(cur->priority < PRI_MIN) cur->priority = PRI_MIN;
+
+  //if priority changes verify if it needs to give the cpu
+  thread_yield ();
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  return thread_current()->nice;
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  return FP_to_INIT_ROUND (MUL_FP_INT(load_avg, 100));
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  struct thread *cur = thread_current ();
+  return FP_to_INIT_ROUND (MUL_FP_INT (cur->recent_cpu, 100));
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -464,6 +481,16 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+
+  if(t==initial_thread){
+    //first thread start with 0
+    t->nice = 0;
+    t->recent_cpu = 0;
+  }
+  else{
+    t->nice = thread_current()->nice;
+    t->recent_cpu= thread_current ()->recent_cpu;
+  }
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);

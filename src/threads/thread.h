@@ -34,7 +34,7 @@ typedef int tid_t;
 #define FP_TO_INIT(x) ((x)/F)
 
 //converts float x to int rounds to the nearest.
-#define INIT_to_F_ROUND(x) (x>=0 ? ((x + F/2)/F) :  ((x - F/2)/F))
+#define FP_to_INIT_ROUND(x) (x>=0 ? ((x + F/2)/F) :  ((x - F/2)/F))
 
 //operations basic
 #define ADD_FP(x,y) ((x)+(y))
