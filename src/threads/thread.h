@@ -24,6 +24,32 @@ typedef int tid_t;
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
 
+//define const F 2^14
+#define F (1 <<14 )
+
+//converts int n to float 
+#define F_to_INT(n) ((n) * F)
+
+//converts float x to int rounds to 0. Warning(n = int, x = float)
+#define INIT_to_F(x) ((x)/F)
+
+//converts float x to int rounds to the nearest.
+#define INIT_to_F_ROUND(x) (x>=0 ? ((x + F/2)/F) :  ((x - F/2)/F))
+
+//operations basic
+#define ADD_FP(x,y) ((x)+(y))
+#define SUB_FP(x,y) ((x)-(y))
+
+//operations with int 
+#define ADD_FP_INT(x,n) ((x)+((n)*(F)))
+#define SUB_FP_INT(x,n) ((x)-((n)*(F)))
+#define MUL_FP_INT(x,n) ((x)*(n))
+#define DIV_FP_INT(x,n) ((x)/(n))
+
+//operations between two floats 
+#define MUL_FP(x, y)      ((int32_t)(((int64_t)(x)) * (y) / (F)))
+#define DIV_FP(x, y)      ((int32_t)(((int64_t)(x)) * (F) / (y)))
+
 /* A kernel thread or user process.
 
    Each thread structure is stored in its own 4 kB page.  The
