@@ -162,6 +162,7 @@ void timer_print_stats(void) {
 /* Timer interrupt handler. */
 static void timer_interrupt(struct intr_frame *args UNUSED) {
   ticks++;
+  thread_tick();
 
   /* (ALARM CLOCK) MODIFICAÇÃO: SE A LISTA NÃO ESTIVER VAZIA E O TEMPO PARA
   ACORDAR DA PRIMEIRA THREAD DA LISTA FOR ULTRAPASSADO, DESBLOQUEIE TODAS AS
@@ -172,10 +173,16 @@ static void timer_interrupt(struct intr_frame *args UNUSED) {
       list_entry(list_front(&blocked_list), struct thread, elem)->wakeup_time <=
           ticks) {
     struct list_elem *cur = list_pop_front(&blocked_list);
-    thread_unblock(list_entry(cur, struct thread, elem));
-  }
+    struct thread *t = list_entry(cur, struct thread, elem);
+    thread_unblock(t);
 
-  thread_tick();
+    // CAUSA UMA TROCA DE CONTEXTO CASO A THREAD ACORDADA TENHA PRIORIDADE MAIOR
+    // QUE A RODANDO ATUALMENTE
+
+    if (t->priority > thread_current()->priority) {
+      intr_yield_on_return();
+    }
+  }
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
