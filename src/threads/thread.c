@@ -21,7 +21,7 @@
 #define THREAD_MAGIC 0xcd6abf4b
 #define A 55
 
-static int load_avg;
+static fixed_t load_avg;
 
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
