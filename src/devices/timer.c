@@ -172,6 +172,20 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
+  if (thread_mlfqs) {
+    /* 1) Incrementa recent_cpu da thread atual a cada tick */
+    struct thread *cur = thread_current();
+    if (cur != idle_thread)
+        cur->recent_cpu = fp_add_int(cur->recent_cpu, 1);
+
+    /* 2) A cada 4 ticks: recalcula prioridade da thread atual */
+    if (ticks % 4 == 0)
+        mlfqs_update_priority(thread_current());
+
+    /* 3) A cada segundo: recalcula load_avg e recent_cpu de todos */
+    if (ticks % TIMER_FREQ == 0)
+        mlfqs_update_all();
+}
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

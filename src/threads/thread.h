@@ -161,9 +161,25 @@ void thread_foreach (thread_action_func *, void *);
 int thread_get_priority (void);
 void thread_set_priority (int);
 
-int thread_get_nice (void);
-void thread_set_nice (int);
-int thread_get_recent_cpu (void);
-int thread_get_load_avg (void);
+int thread_get_nice (void)
+{
+    return thread_current()->nice;
+}
+void thread_set_nice (int)
+{
+    ASSERT(nice >= -20 && nice <= 20);
+    thread_current()->nice = nice;
+    mlfqs_update_priority(thread_current());
+
+    /* Cede CPU se outra thread tem prioridade maior agora */
+    if (!list_empty(&ready_list) || mlfqs_has_higher_priority())
+        thread_yield();
+}
+int thread_get_recent_cpu (void){
+    return fp_to_int_round(fp_mul_int(thread_current()->recent_cpu, 100));
+}
+int thread_get_load_avg (void){
+    return fp_to_int_round(fp_mul_int(load_avg, 100));
+}
 
 #endif /* threads/thread.h */
