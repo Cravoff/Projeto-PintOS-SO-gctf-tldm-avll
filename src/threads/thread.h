@@ -6,23 +6,50 @@
 #include <stdint.h>
 
 /* States in a thread's life cycle. */
-enum thread_status
-  {
-    THREAD_RUNNING,     /* Running thread. */
-    THREAD_READY,       /* Not running but ready to run. */
-    THREAD_BLOCKED,     /* Waiting for an event to trigger. */
-    THREAD_DYING        /* About to be destroyed. */
-  };
+enum thread_status {
+  THREAD_RUNNING, /* Running thread. */
+  THREAD_READY,   /* Not running but ready to run. */
+  THREAD_BLOCKED, /* Waiting for an event to trigger. */
+  THREAD_DYING    /* About to be destroyed. */
+};
 
 /* Thread identifier type.
    You can redefine this to whatever type you like. */
 typedef int tid_t;
+
 #define TID_ERROR ((tid_t) -1)          /* Error value for tid_t. */
-typedef int fixed_t;
+typedef int fixed_t;                    // type casting da implementação de ponto fixo
+
 /* Thread priorities. */
-#define PRI_MIN 0                       /* Lowest priority. */
-#define PRI_DEFAULT 31                  /* Default priority. */
-#define PRI_MAX 63                      /* Highest priority. */
+#define PRI_MIN 0      /* Lowest priority. */
+#define PRI_DEFAULT 31 /* Default priority. */
+#define PRI_MAX 63     /* Highest priority. */
+
+//define const F 2^14
+#define F (1 <<14 )
+
+//converts int n to float 
+#define F_to_INT(n) ((n) * F)
+
+//converts float x to int rounds to 0. Warning(n = int, x = float)
+#define INIT_to_F(x) ((x)/F)
+
+//converts float x to int rounds to the nearest.
+#define INIT_to_F_ROUND(x) (x>=0 ? ((x + F/2)/F) :  ((x - F/2)/F))
+
+//operations basic
+#define ADD_FP(x,y) ((x)+(y))
+#define SUB_FP(x,y) ((x)-(y))
+
+//operations with int 
+#define ADD_FP_INT(x,n) ((x)+((n)*(F)))
+#define SUB_FP_INT(x,n) ((x)-((n)*(F)))
+#define MUL_FP_INT(x,n) ((x)*(n))
+#define DIV_FP_INT(x,n) ((x)/(n))
+
+//operations between two floats 
+#define MUL_FP(x, y)      ((int32_t)(((int64_t)(x)) * (y) / (F)))
+#define DIV_FP(x, y)      ((int32_t)(((int64_t)(x)) * (F) / (y)))
 
 //define const F 2^14
 #define F (1 <<14 )
@@ -106,80 +133,70 @@ typedef int fixed_t;
    only because they are mutually exclusive: only a thread in the
    ready state is on the run queue, whereas only a thread in the
    blocked state is on a semaphore wait list. */
-struct thread
-  {
-    /* Owned by thread.c. */
-    tid_t tid;                          /* Thread identifier. */
-    enum thread_status status;          /* Thread state. */
-    char name[16];                      /* Name (for debugging purposes). */
-    uint8_t *stack;                     /* Saved stack pointer. */
-    int priority;                       /* Priority. */
-    int nice;                           //nicenes of cpu (-20 to 20)
-    fixed_t recent_cpu;                     //time recent cpu (point fixed)
-    struct list_elem allelem;           /* List element for all threads list. */
 
-    /* Shared between thread.c and synch.c. */
-    struct list_elem elem;              /* List element. */
+struct thread {
+  /* Owned by thread.c. */
+  tid_t tid;                 /* Thread identifier. */
+  enum thread_status status; /* Thread state. */
+  char name[16];             /* Name (for debugging purposes). */
+  uint8_t *stack;            /* Saved stack pointer. */
+  int priority;              /* Priority. */
+  
+  int nice;                   //nicenes of cpu (-20 to 20)
+  fixed_t recent_cpu;         //time recent cpu (point fixed)
+ 
+  struct list_elem allelem;  /* List element for all threads list. */
+
+  int64_t wakeup_time; /* (ALARM CLOCK) MODIFICAÇÃO: A THREAD VAI GUARDAR O
+                      TEMPO QUE ELA DEVE ACORDAR AGORA */
+
+  /* Shared between thread.c and synch.c. */
+  struct list_elem elem; /* List element. */
+
 
 #ifdef USERPROG
-    /* Owned by userprog/process.c. */
-    uint32_t *pagedir;                  /* Page directory. */
+  /* Owned by userprog/process.c. */
+  uint32_t *pagedir; /* Page directory. */
 #endif
 
-    /* Owned by thread.c. */
-    unsigned magic;                     /* Detects stack overflow. */
-  };
+  /* Owned by thread.c. */
+  unsigned magic; /* Detects stack overflow. */
+};
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
 extern bool thread_mlfqs;
 
-void thread_init (void);
-void thread_start (void);
+void thread_init(void);
+void thread_start(void);
 
-void thread_tick (void);
-void thread_print_stats (void);
+void thread_tick(void);
+void thread_print_stats(void);
 
-typedef void thread_func (void *aux);
-tid_t thread_create (const char *name, int priority, thread_func *, void *);
+typedef void thread_func(void *aux);
+tid_t thread_create(const char *name, int priority, thread_func *, void *);
 
-void thread_block (void);
-void thread_unblock (struct thread *);
+void thread_block(void);
+void thread_unblock(struct thread *);
 
-struct thread *thread_current (void);
-tid_t thread_tid (void);
-const char *thread_name (void);
+struct thread *thread_current(void);
+tid_t thread_tid(void);
+const char *thread_name(void);
 
-void thread_exit (void) NO_RETURN;
-void thread_yield (void);
+void thread_exit(void) NO_RETURN;
+void thread_yield(void);
 
 /* Performs some operation on thread t, given auxiliary data AUX. */
-typedef void thread_action_func (struct thread *t, void *aux);
-void thread_foreach (thread_action_func *, void *);
+typedef void thread_action_func(struct thread *t, void *aux);
+void thread_foreach(thread_action_func *, void *);
 
-int thread_get_priority (void);
-void thread_set_priority (int);
+int thread_get_priority(void);
+void thread_set_priority(int);
 
-int thread_get_nice (void)
-{
-    return thread_current()->nice;
-}
-void thread_set_nice (int)
-{
-    ASSERT(nice >= -20 && nice <= 20);
-    thread_current()->nice = nice;
-    mlfqs_update_priority(thread_current());
-
-    /* Cede CPU se outra thread tem prioridade maior agora */
-    if (!list_empty(&ready_list) || mlfqs_has_higher_priority())
-        thread_yield();
-}
-int thread_get_recent_cpu (void){
-    return fp_to_int_round(fp_mul_int(thread_current()->recent_cpu, 100));
-}
-int thread_get_load_avg (void){
-    return fp_to_int_round(fp_mul_int(load_avg, 100));
-}
+int thread_get_nice(void);
+void thread_set_nice(int);
+int thread_get_recent_cpu(void);
+int thread_get_load_avg(void);
 
 #endif /* threads/thread.h */
