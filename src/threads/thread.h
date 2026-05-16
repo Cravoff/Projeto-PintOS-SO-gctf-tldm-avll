@@ -16,7 +16,9 @@ enum thread_status {
 /* Thread identifier type.
    You can redefine this to whatever type you like. */
 typedef int tid_t;
-#define TID_ERROR ((tid_t) - 1) /* Error value for tid_t. */
+
+#define TID_ERROR ((tid_t) -1)          /* Error value for tid_t. */
+typedef int fixed_t;                    // type casting da implementação de ponto fixo
 
 /* Thread priorities. */
 #define PRI_MIN 0      /* Lowest priority. */
@@ -34,6 +36,32 @@ typedef int tid_t;
 
 //converts float x to int rounds to the nearest.
 #define INIT_to_F_ROUND(x) (x>=0 ? ((x + F/2)/F) :  ((x - F/2)/F))
+
+//operations basic
+#define ADD_FP(x,y) ((x)+(y))
+#define SUB_FP(x,y) ((x)-(y))
+
+//operations with int 
+#define ADD_FP_INT(x,n) ((x)+((n)*(F)))
+#define SUB_FP_INT(x,n) ((x)-((n)*(F)))
+#define MUL_FP_INT(x,n) ((x)*(n))
+#define DIV_FP_INT(x,n) ((x)/(n))
+
+//operations between two floats 
+#define MUL_FP(x, y)      ((int32_t)(((int64_t)(x)) * (y) / (F)))
+#define DIV_FP(x, y)      ((int32_t)(((int64_t)(x)) * (F) / (y)))
+
+//define const F 2^14
+#define F (1 <<14 )
+
+//converts int n to float 
+#define INIT_TO_FP(n) ((n) * F)
+
+//converts float x to int rounds to 0. Warning(n = int, x = float)
+#define FP_TO_INIT(x) ((x)/F)
+
+//converts float x to int rounds to the nearest.
+#define FP_to_INIT_ROUND(x) (x>=0 ? ((x + F/2)/F) :  ((x - F/2)/F))
 
 //operations basic
 #define ADD_FP(x,y) ((x)+(y))
@@ -105,6 +133,7 @@ typedef int tid_t;
    only because they are mutually exclusive: only a thread in the
    ready state is on the run queue, whereas only a thread in the
    blocked state is on a semaphore wait list. */
+
 struct thread {
   /* Owned by thread.c. */
   tid_t tid;                 /* Thread identifier. */
@@ -112,6 +141,10 @@ struct thread {
   char name[16];             /* Name (for debugging purposes). */
   uint8_t *stack;            /* Saved stack pointer. */
   int priority;              /* Priority. */
+  
+  int nice;                   //nicenes of cpu (-20 to 20)
+  fixed_t recent_cpu;         //time recent cpu (point fixed)
+ 
   struct list_elem allelem;  /* List element for all threads list. */
 
   int64_t wakeup_time; /* (ALARM CLOCK) MODIFICAÇÃO: A THREAD VAI GUARDAR O
@@ -119,6 +152,7 @@ struct thread {
 
   /* Shared between thread.c and synch.c. */
   struct list_elem elem; /* List element. */
+
 
 #ifdef USERPROG
   /* Owned by userprog/process.c. */

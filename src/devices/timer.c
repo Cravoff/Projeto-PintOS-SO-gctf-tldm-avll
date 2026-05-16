@@ -162,7 +162,7 @@ void timer_print_stats(void) {
 /* Timer interrupt handler. */
 static void timer_interrupt(struct intr_frame *args UNUSED) {
   ticks++;
-  thread_tick();
+  thread_tick ();
 
   /* (ALARM CLOCK) MODIFICAÇÃO: SE A LISTA NÃO ESTIVER VAZIA E O TEMPO PARA
   ACORDAR DA PRIMEIRA THREAD DA LISTA FOR ULTRAPASSADO, DESBLOQUEIE TODAS AS
@@ -182,6 +182,21 @@ static void timer_interrupt(struct intr_frame *args UNUSED) {
     if (t->priority > thread_current()->priority) {
       intr_yield_on_return();
     }
+  }
+
+  if (thread_mlfqs) {
+    /* 1) Incrementa recent_cpu da thread atual a cada tick */
+    struct thread *cur = thread_current();
+    if (cur != idle_thread)
+        cur->recent_cpu = fp_add_int(cur->recent_cpu, 1);
+
+    /* 2) A cada 4 ticks: recalcula prioridade da thread atual */
+    if (ticks % 4 == 0)
+        mlfqs_update_priority(thread_current());
+
+    /* 3) A cada segundo: recalcula load_avg e recent_cpu de todos */
+    if (ticks % TIMER_FREQ == 0)
+        mlfqs_update_all();
   }
 }
 
